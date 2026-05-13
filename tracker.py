@@ -46,3 +46,14 @@ def get_seen_count() -> int:
     count = conn.execute("SELECT COUNT(*) FROM seen_jobs").fetchone()[0]
     conn.close()
     return count
+
+
+def get_recent_jobs(limit: int = 5) -> list[dict]:
+    """Return the most recently seen jobs."""
+    conn = sqlite3.connect(DB_PATH)
+    rows = conn.execute(
+        "SELECT job_id, title, company, seen_at FROM seen_jobs ORDER BY seen_at DESC LIMIT ?",
+        (limit,),
+    ).fetchall()
+    conn.close()
+    return [{"job_id": r[0], "title": r[1], "company": r[2], "seen_at": r[3]} for r in rows]

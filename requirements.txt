@@ -2,3 +2,4 @@ anthropic
 composio-core
 python-telegram-bot
 python-dotenv
+ddgs
