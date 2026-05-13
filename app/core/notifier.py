@@ -6,7 +6,6 @@ from telegram import Bot
 
 
 def _get_env(key: str) -> str:
-    """Fetch a required environment variable, raise if missing."""
     val = os.getenv(key)
     if not val:
         raise EnvironmentError(f"Missing environment variable: {key}")
@@ -14,7 +13,6 @@ def _get_env(key: str) -> str:
 
 
 def send_telegram(message: str):
-    """Send a message via the Telegram Bot API (blocking wrapper)."""
     try:
         token = _get_env("TELEGRAM_BOT_TOKEN")
         chat_id = _get_env("TELEGRAM_CHAT_ID")
@@ -25,11 +23,10 @@ def send_telegram(message: str):
 
         asyncio.run(_send())
     except Exception as exc:
-        print(f"[{_ts()}] ⚠️  Telegram send failed: {exc}")
+        print(f"[{_ts()}] Telegram send failed: {exc}")
 
 
 def send_notification(job: dict):
-    """Format a job dict and dispatch Telegram + terminal notifications."""
     title = job.get("title", "N/A")
     company = job.get("company", "N/A")
     location = job.get("location", "N/A")
@@ -46,9 +43,8 @@ def send_notification(job: dict):
         "#fresher #hiring #jobs"
     )
 
-    # Terminal log
     print(
-        f"\n[{_ts()}] 🆕 NEW JOB\n"
+        f"\n[{_ts()}] NEW JOB\n"
         f"  Role    : {title}\n"
         f"  Company : {company}\n"
         f"  Location: {location}\n"
@@ -60,5 +56,4 @@ def send_notification(job: dict):
 
 
 def _ts() -> str:
-    """Return a short UTC timestamp string."""
     return datetime.utcnow().strftime("%Y-%m-%d %H:%M:%S")

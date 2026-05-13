@@ -1,10 +1,8 @@
 import hashlib
-import re
 from datetime import datetime
 
 from ddgs import DDGS
 
-# Job boards to search beyond LinkedIn as broader fallback
 _JOB_BOARDS = [
     "site:linkedin.com/jobs",
     "site:internshala.com",
@@ -14,12 +12,10 @@ _JOB_BOARDS = [
 
 
 def _make_id(url: str) -> str:
-    """Stable job ID from URL so we don't re-notify the same listing."""
     return "web_" + hashlib.md5(url.encode()).hexdigest()[:12]
 
 
 def _parse_title_company(title: str) -> tuple[str, str]:
-    """Best-effort split of 'Role at Company | ...' style titles."""
     for sep in (" at ", " - ", " | "):
         if sep in title:
             parts = title.split(sep, 1)
@@ -28,12 +24,6 @@ def _parse_title_company(title: str) -> tuple[str, str]:
 
 
 def search_jobs(keyword: str, location: str, max_results: int = 10) -> list[dict]:
-    """
-    Search DuckDuckGo for jobs matching keyword+location.
-    Tries LinkedIn first; if fewer than 3 results, widens to other boards.
-    Returns a list of job dicts with keys: job_id, title, company, location,
-    posted_at, apply_link, source.
-    """
     jobs: list[dict] = []
     seen_urls: set[str] = set()
 
@@ -59,10 +49,8 @@ def search_jobs(keyword: str, location: str, max_results: int = 10) -> list[dict
                 "source": "web",
             })
 
-    # Primary: LinkedIn
     _fetch(f"site:linkedin.com/jobs {keyword} {location}", max_results)
 
-    # Fallback: broaden to other boards if LinkedIn gave too few
     if len(jobs) < 3:
         for board in _JOB_BOARDS[1:]:
             if len(jobs) >= max_results:

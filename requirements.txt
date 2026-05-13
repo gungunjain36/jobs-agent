@@ -3,3 +3,6 @@ composio-core
 python-telegram-bot
 python-dotenv
 ddgs
+fastapi
+uvicorn[standard]
+pydantic

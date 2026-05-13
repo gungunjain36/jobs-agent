@@ -1,134 +1,218 @@
-# LinkedIn Fresher Job Tracker Agent
+# Jobs Agent
 
-## 1. What This Does
-
-An AI agent that polls LinkedIn for entry-level / fresher job postings using
-Composio's LinkedIn integration and Claude as the reasoning brain. Whenever a
-new matching job is found it sends a Telegram notification and prints it to the
-terminal. Already-seen jobs are stored in SQLite so you never get duplicate
-alerts.
+> An AI-powered agentic system that autonomously discovers and delivers fresher/entry-level job opportunities in real time — powered by Claude, Composio, and FastAPI.
 
 ---
 
-## 2. Prerequisites
+## Overview
 
-- Python 3.10+
-- A Telegram Bot (instructions below)
-- A [Composio](https://composio.dev) account with LinkedIn connected
+Jobs Agent is an intelligent job tracking system built with an agentic architecture. It uses **Claude (claude-sonnet-4-6)** as the reasoning engine to search LinkedIn for fresher and entry-level job postings, deduplicate results via SQLite, push instant **Telegram notifications**, and expose a **REST API** for programmatic control and data access.
 
----
-
-## 3. Setup: Telegram Bot
-
-1. Open Telegram and search for **@BotFather**
-2. Send `/newbot`, follow the prompts, and copy the **Bot Token**
-3. Start a chat with your new bot and send any message (e.g. "hello")
-4. Visit the URL below to find your **Chat ID** (look for `"id"` inside `"chat"`):
-   ```
-   https://api.telegram.org/bot<YOUR_TOKEN>/getUpdates
-   ```
-   If the array is empty, send another message to the bot and refresh.
-5. Add both values to `.env`:
-   ```
-   TELEGRAM_BOT_TOKEN=123456:ABC-DEF...
-   TELEGRAM_CHAT_ID=987654321
-   ```
+The system runs continuously, polling LinkedIn at a configurable interval. A web search fallback (DuckDuckGo) ensures coverage even when LinkedIn's API returns sparse results.
 
 ---
 
-## 4. Setup: Composio + LinkedIn
+## Key Features
 
-```bash
-pip install composio-core
-composio login                   # authenticate with your Composio account
-composio add linkedin            # follow the OAuth flow to connect LinkedIn
-composio actions --app linkedin  # verify the LinkedIn actions are available
+- **Agentic AI Core** — Claude orchestrates LinkedIn tool calls via Composio, parses unstructured responses, and extracts structured job data autonomously
+- **Real-time Telegram Alerts** — Instant push notifications for every new job found, with full job details and a direct apply link
+- **Interactive Telegram Bot** — Control the agent (`/pause`, `/resume`, `/search`, `/status`) directly from your phone
+- **FastAPI REST Interface** — Query tracked jobs, trigger searches, and manage the agent via a clean HTTP API with auto-generated docs
+- **Smart Deduplication** — SQLite-backed job store ensures you never receive the same alert twice
+- **Web Search Fallback** — DuckDuckGo fallback across LinkedIn, Naukri, Internshala, and Instahyre when primary tools return no results
+- **On-demand Search** — Trigger custom keyword searches via Telegram or the API without waiting for the next poll cycle
+
+---
+
+## Architecture
+
+```
+┌─────────────────────────────────────────────────────────┐
+│                        main.py                          │
+│          (Entry point — starts agent + API server)      │
+└────────────────────┬────────────────────────────────────┘
+                     │
+         ┌───────────┴───────────┐
+         │                       │
+         ▼                       ▼
+┌─────────────────┐    ┌──────────────────────┐
+│  app/agent/     │    │  app/api/            │
+│  runner.py      │    │  server.py (FastAPI) │
+│                 │    │                      │
+│  Poll Loop      │    │  GET  /jobs          │
+│  Telegram Bot   │    │  GET  /jobs/recent   │
+│  Claude Agent   │    │  GET  /jobs/search   │
+│  Web Fallback   │    │  GET  /agent/status  │
+└────────┬────────┘    │  POST /agent/search  │
+         │             │  POST /agent/pause   │
+         │             │  POST /agent/resume  │
+         │             └──────────────────────┘
+         │
+         ▼
+┌─────────────────────────────────────────────┐
+│               app/core/                     │
+│  config.py   tracker.py   notifier.py       │
+│  (Settings)  (SQLite DB)  (Telegram push)   │
+└─────────────────────────────────────────────┘
+         │
+         ▼
+┌──────────────────────────────┐
+│   Composio SDK               │
+│   LinkedIn Job Search API    │
+│   Claude claude-sonnet-4-6   │
+└──────────────────────────────┘
 ```
 
 ---
 
-## 5. Setup: Project
+## Tech Stack
+
+| Layer | Technology |
+|---|---|
+| AI Reasoning | Anthropic Claude (claude-sonnet-4-6) |
+| Tool Integration | Composio SDK + LinkedIn API |
+| REST API | FastAPI + Uvicorn |
+| Notifications | python-telegram-bot |
+| Web Fallback | DuckDuckGo Search (ddgs) |
+| Persistence | SQLite |
+| Config | python-dotenv |
+
+---
+
+## Project Structure
+
+```
+jobs-agent/
+├── app/
+│   ├── agent/
+│   │   ├── runner.py        # Claude agent loop, poll cycle, Telegram bot handlers
+│   │   └── websearch.py     # DuckDuckGo fallback search
+│   ├── api/
+│   │   ├── server.py        # FastAPI app instance
+│   │   └── routes/
+│   │       ├── jobs.py      # Job listing endpoints
+│   │       └── agent.py     # Agent control endpoints
+│   ├── core/
+│   │   ├── config.py        # Keywords, location, intervals
+│   │   ├── tracker.py       # SQLite read/write helpers
+│   │   └── notifier.py      # Telegram message dispatcher
+│   ├── schemas.py           # Pydantic request/response models
+│   └── state.py             # Shared in-memory agent state
+├── main.py                  # Application entry point
+├── requirements.txt
+├── .env.example
+└── README.md
+```
+
+---
+
+## Setup
+
+### Prerequisites
+
+- Python 3.10+
+- A [Composio](https://composio.dev) account with LinkedIn connected
+- A Telegram Bot (create via [@BotFather](https://t.me/BotFather))
+
+### 1. Clone and install
 
 ```bash
-# Clone / enter the project folder
-cd linkedin-job-tracker
+git clone https://github.com/gungunjain36/jobs-agent.git
+cd jobs-agent
 
-# Create and activate a virtual environment
 python3 -m venv .venv
-source .venv/bin/activate        # Windows: .venv\Scripts\activate
+source .venv/bin/activate   # Windows: .venv\Scripts\activate
 
-# Install dependencies
 pip install -r requirements.txt
+```
 
-# Copy the env template and fill in your values
+### 2. Configure environment
+
+```bash
 cp .env.example .env
 ```
 
-Edit `.env` and set all four variables:
-
-| Variable | Description |
+| Variable | Where to get it |
 |---|---|
-| `ANTHROPIC_API_KEY` | From [console.anthropic.com](https://console.anthropic.com) |
-| `COMPOSIO_API_KEY` | From your Composio dashboard |
-| `TELEGRAM_BOT_TOKEN` | From @BotFather |
-| `TELEGRAM_CHAT_ID` | From the getUpdates URL |
+| `ANTHROPIC_API_KEY` | [console.anthropic.com](https://console.anthropic.com) |
+| `COMPOSIO_API_KEY` | Composio dashboard |
+| `TELEGRAM_BOT_TOKEN` | @BotFather on Telegram |
+| `TELEGRAM_CHAT_ID` | `https://api.telegram.org/bot<TOKEN>/getUpdates` |
 
----
-
-## 6. Run
+### 3. Connect LinkedIn via Composio
 
 ```bash
-python agent.py
+composio login
+composio add linkedin
 ```
 
-On startup the agent will:
-- Print a banner showing all configured keywords and the polling interval
-- List every LinkedIn tool it loaded from Composio
-- Send a "Tracker is live!" message to your Telegram chat
-- Immediately run the first poll cycle, then repeat every 30 minutes
+### 4. Run
 
-Stop it at any time with **Ctrl+C**.
+```bash
+python main.py
+```
+
+The agent starts polling immediately. The FastAPI server is available at `http://localhost:8000`.
+Interactive API docs: `http://localhost:8000/docs`
 
 ---
 
-## 7. Customisation
+## API Reference
 
-| What to change | Where |
+| Method | Endpoint | Description |
+|---|---|---|
+| `GET` | `/jobs` | List all tracked jobs (`?limit=20`) |
+| `GET` | `/jobs/recent` | Last 5 tracked jobs |
+| `GET` | `/jobs/count` | Total jobs tracked |
+| `GET` | `/jobs/search?q=` | Search tracked jobs by keyword |
+| `GET` | `/agent/status` | Agent state, last cycle time, session stats |
+| `POST` | `/agent/search` | Queue an on-demand search `{"keyword": "..."}` |
+| `POST` | `/agent/pause` | Pause the polling loop |
+| `POST` | `/agent/resume` | Resume the polling loop |
+| `GET` | `/health` | Health check |
+
+Full interactive documentation available at `/docs` (Swagger UI) and `/redoc`.
+
+---
+
+## Telegram Bot Commands
+
+| Command | Description |
 |---|---|
-| Search keywords | `config.py` → `SEARCH_KEYWORDS` |
-| Target location | `config.py` → `LOCATION_FILTER` |
-| Polling frequency | `config.py` → `POLL_INTERVAL_MINUTES` |
-| Jobs per query | `config.py` → `MAX_JOBS_PER_QUERY` |
+| `/start` | Show command menu |
+| `/status` | View agent state and session stats |
+| `/search <keyword>` | Trigger an immediate custom search |
+| `/recent` | Show last 5 jobs tracked |
+| `/pause` | Pause auto-polling |
+| `/resume` | Resume auto-polling |
 
 ---
 
-## 8. How It Works
+## Configuration
 
-```
-config.py  (keywords, interval, location)
-     |
-     v
-agent.py  (main polling loop)
-     |                  |
-     |                  v
-     |          Composio SDK ──► LinkedIn Job Search API
-     |                  |
-     |          Claude claude-sonnet-4-20250514
-     |          (parses & extracts structured job list)
-     |                  |
-     v                  v
-tracker.py          notifier.py
-(SQLite —           (Telegram Bot  +  terminal log)
- deduplication)
-```
+All tunable parameters live in `app/core/config.py`:
 
-### Flow per poll cycle
+| Parameter | Default | Description |
+|---|---|---|
+| `SEARCH_KEYWORDS` | 5 fresher-focused terms | Keywords sent to LinkedIn search |
+| `LOCATION_FILTER` | `"India"` | Target geography |
+| `POLL_INTERVAL_MINUTES` | `30` | How often the agent polls LinkedIn |
+| `MAX_JOBS_PER_QUERY` | `10` | Max results fetched per keyword per cycle |
 
-1. For each keyword in `SEARCH_KEYWORDS`:
-   - Claude calls the LinkedIn tool via Composio
-   - Claude returns a JSON array of jobs
-   - Each job is checked against SQLite
-   - New jobs → Telegram notification + SQLite insert
-   - Known jobs → silently skipped
-2. Summary printed: "X new jobs found. Total tracked: Y"
-3. Agent sleeps for `POLL_INTERVAL_MINUTES` minutes, then repeats
+---
+
+## Future Roadmap
+
+- **Resume Matching** — Upload a resume and let Claude score each job on fit before sending a notification, filtering out irrelevant listings automatically
+- **Multi-platform Support** — Extend beyond LinkedIn to Naukri, Wellfound, and Greenhouse using additional Composio integrations
+- **User Dashboard** — React/Next.js frontend to browse tracked jobs, configure keywords, and visualise application history
+- **Application Tracking** — Mark jobs as applied/rejected and have Claude draft personalised cold emails or cover letters on demand
+- **Smart Scheduling** — Use Claude to learn from application outcomes and dynamically adjust search keywords and timing for better hit rates
+- **Email Digest** — Optional daily or weekly email summary of new listings for users who prefer not to use Telegram
+- **Webhook Support** — Push new job events to any external system (Notion, Slack, Airtable) via configurable webhooks
+
+---
+
+## License
+
+MIT

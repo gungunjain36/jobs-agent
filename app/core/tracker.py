@@ -5,7 +5,6 @@ DB_PATH = "jobs.db"
 
 
 def init_db():
-    """Create the SQLite DB and seen_jobs table if they don't exist."""
     conn = sqlite3.connect(DB_PATH)
     conn.execute("""
         CREATE TABLE IF NOT EXISTS seen_jobs (
@@ -20,7 +19,6 @@ def init_db():
 
 
 def is_seen(job_id: str) -> bool:
-    """Return True if the job_id has already been recorded."""
     conn = sqlite3.connect(DB_PATH)
     row = conn.execute(
         "SELECT 1 FROM seen_jobs WHERE job_id = ?", (job_id,)
@@ -30,7 +28,6 @@ def is_seen(job_id: str) -> bool:
 
 
 def mark_seen(job_id: str, title: str, company: str):
-    """Insert a new job record into the seen_jobs table."""
     conn = sqlite3.connect(DB_PATH)
     conn.execute(
         "INSERT OR IGNORE INTO seen_jobs (job_id, title, company, seen_at) VALUES (?, ?, ?, ?)",
@@ -41,7 +38,6 @@ def mark_seen(job_id: str, title: str, company: str):
 
 
 def get_seen_count() -> int:
-    """Return the total number of jobs tracked so far."""
     conn = sqlite3.connect(DB_PATH)
     count = conn.execute("SELECT COUNT(*) FROM seen_jobs").fetchone()[0]
     conn.close()
@@ -49,11 +45,21 @@ def get_seen_count() -> int:
 
 
 def get_recent_jobs(limit: int = 5) -> list[dict]:
-    """Return the most recently seen jobs."""
     conn = sqlite3.connect(DB_PATH)
     rows = conn.execute(
         "SELECT job_id, title, company, seen_at FROM seen_jobs ORDER BY seen_at DESC LIMIT ?",
         (limit,),
+    ).fetchall()
+    conn.close()
+    return [{"job_id": r[0], "title": r[1], "company": r[2], "seen_at": r[3]} for r in rows]
+
+
+def search_jobs_by_keyword(keyword: str, limit: int = 20) -> list[dict]:
+    conn = sqlite3.connect(DB_PATH)
+    rows = conn.execute(
+        "SELECT job_id, title, company, seen_at FROM seen_jobs "
+        "WHERE title LIKE ? OR company LIKE ? ORDER BY seen_at DESC LIMIT ?",
+        (f"%{keyword}%", f"%{keyword}%", limit),
     ).fetchall()
     conn.close()
     return [{"job_id": r[0], "title": r[1], "company": r[2], "seen_at": r[3]} for r in rows]
