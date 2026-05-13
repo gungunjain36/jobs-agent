@@ -1,7 +1,7 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
-from app.api.routes import jobs, agent
+from app.api.routes import jobs, agent, mailer
 
 app = FastAPI(
     title="Jobs Agent API",
@@ -20,6 +20,7 @@ app.add_middleware(
 
 app.include_router(jobs.router, prefix="/jobs", tags=["Jobs"])
 app.include_router(agent.router, prefix="/agent", tags=["Agent"])
+app.include_router(mailer.router, prefix="/mailer", tags=["Mailer"])
 
 
 @app.get("/", tags=["Health"])

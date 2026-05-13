@@ -1,0 +1,16 @@
+# Copy this file to personal_data.yml and fill in your real values.
+# personal_data.yml is gitignored - never commit it.
+
+sender:
+  name: "Your Full Name"
+  email: "you@gmail.com"
+
+  # Gmail App Password (not your regular password).
+  # Generate at: Google Account > Security > 2-Step Verification > App passwords
+  gmail_app_password: "xxxx xxxx xxxx xxxx"
+
+  # Optional but included in email signatures
+  phone: "+91-XXXXXXXXXX"
+  linkedin: "linkedin.com/in/yourhandle"
+  github: "github.com/yourhandle"
+  portfolio: "yourportfolio.com"

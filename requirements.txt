@@ -6,3 +6,6 @@ ddgs
 fastapi
 uvicorn[standard]
 pydantic
+openpyxl
+pyyaml
+pdfplumber

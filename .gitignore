@@ -4,3 +4,7 @@ __pycache__/
 *.pyo
 .env
 *.db
+personal_data.yml
+resume_context.yml
+resume_cached.pdf
+contacts.xlsx
